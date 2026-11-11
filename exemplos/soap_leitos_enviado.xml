@@ -1,0 +1,18 @@
+<!-- Este arquivo não contém dados pessoais (LGPD - Lei 13.709/2018): nada precisou ser mascarado. Conteúdo igual ao da resposta/requisição real. -->
+<soap-env:Envelope xmlns:soap-env="http://www.w3.org/2003/05/soap-envelope">
+  <soap-env:Header>
+    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <wsse:UsernameToken>
+        <wsse:Username>CNES.PUBLICO</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">cnes#2015public</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soap-env:Header>
+  <soap-env:Body>
+    <ns0:requestConsultarLeitosCNES xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice">
+      <ns1:CodigoCNES xmlns:ns1="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes">
+        <ns1:codigo>4884124</ns1:codigo>
+      </ns1:CodigoCNES>
+    </ns0:requestConsultarLeitosCNES>
+  </soap-env:Body>
+</soap-env:Envelope>

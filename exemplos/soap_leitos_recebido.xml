@@ -1,0 +1,17 @@
+<!-- Este arquivo não contém dados pessoais (LGPD - Lei 13.709/2018): nada precisou ser mascarado. Conteúdo igual ao da resposta/requisição real. -->
+<soap:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope" xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+  <S:Header xmlns:S="http://www.w3.org/2003/05/soap-envelope">
+    <WorkContext xmlns="http://oracle.com/weblogic/soap/workarea/" xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:S="http://www.w3.org/2003/05/soap-envelope">rO0ABXdIABF3ZWJsb2dpYy5hcHAuY25lcwAAANYAAAAjd2VibG9naWMud29ya2FyZWEuU3RyaW5nV29ya0NvbnRleHQABjEuMTEuMgAA</WorkContext>
+  </S:Header>
+  <S:Body xmlns:S="http://www.w3.org/2003/05/soap-envelope">
+    <leit:responseConsultarLeitosCNES xmlns:leit="http://servicos.saude.gov.br/cnes/v1r0/leitoservice">
+      <leit1:leito xmlns:leit1="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">
+        <ns3:codigo xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice" xmlns:ns2="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes" xmlns:ns3="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">33</ns3:codigo>
+        <ns3:descricao xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice" xmlns:ns2="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes" xmlns:ns3="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">CLINICA GERAL</ns3:descricao>
+        <ns3:dataAtualizacao xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice" xmlns:ns2="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes" xmlns:ns3="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">2026-04-28T00:00:00.000</ns3:dataAtualizacao>
+        <ns3:quantidadeLeito xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice" xmlns:ns2="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes" xmlns:ns3="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">1</ns3:quantidadeLeito>
+        <ns3:quantidadeLeitoSUS xmlns:ns0="http://servicos.saude.gov.br/cnes/v1r0/leitoservice" xmlns:ns2="http://servicos.saude.gov.br/schema/cnes/v1r0/codigocnes" xmlns:ns3="http://servicos.saude.gov.br/schema/cnes/v1r0/leito">0</ns3:quantidadeLeitoSUS>
+      </leit1:leito>
+    </leit:responseConsultarLeitosCNES>
+  </S:Body>
+</soap:Envelope>
