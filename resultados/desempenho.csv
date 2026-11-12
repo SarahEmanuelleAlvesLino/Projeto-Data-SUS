@@ -1,0 +1,6 @@
+data_hora,cnes,servico,chamadas,ok,falhas,com_nova_tentativa,media_ms,mediana_ms,min_ms,max_ms,desvio_ms,rede_media_ms,tamanho_bytes
+2026-11-11T09:10:35,4884124,REST detalhe,10,10,0,0,324.7,318.1,283.9,435.9,41.8,,1661
+2026-11-11T09:10:35,4884124,SOAP estabelecimento,10,10,0,0,134.8,133.1,118.8,154.5,11.4,130.2,26942
+2026-11-11T09:10:35,4884124,SOAP leitos,10,10,0,0,109.9,88.3,71.2,222.6,52.3,108.6,2001
+2026-11-11T09:10:35,4884124,WSDL CnesService,1,1,0,0,3563.4,,,,,,
+2026-11-11T09:10:35,4884124,WSDL LeitoService,1,1,0,0,516.1,,,,,,
