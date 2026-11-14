@@ -94,30 +94,41 @@ flowchart LR
 | **zeep** 4.3 | cliente SOAP: lê o WSDL, monta o envelope, aplica o WS-Security e converte o XML em objetos Python |
 | **lxml** (dependência do zeep) | leitura, formatação e mascaramento do XML |
 | **Streamlit** 1.65 | interface web (com pandas e Altair para tabelas, mapa e gráficos) |
-| **pytest** 9.2 | testes automatizados (com `unittest.mock` e o `AppTest` do Streamlit) |
+| **pytest** 9.2 | testes automatizados (com `unittest.mock` para simular falhas do servidor) |
 | **Linux (Ubuntu/WSL)**, **Git/GitHub** | ambiente de desenvolvimento e versionamento |
 
-```
+```text
 Projeto-Data-SUS/
-├── rest_client.py        # cliente REST: listar_estabelecimentos, buscar_estabelecimento, listar_tipos_unidade
-├── soap_client.py        # cliente SOAP: consultar_estabelecimento, consultar_leitos (zeep + WS-Security,
-│                         #   novas tentativas, cache, mascaramento de dados pessoais)
-├── app.py                # sistema integrado (interface Streamlit)
-├── benchmark.py          # mede tempo/tamanho REST x SOAP e analisa o conteúdo das respostas
-├── requirements.txt      # dependências com versão fixada
-├── exemplos/             # mensagens REAIS capturadas (dados pessoais mascarados)
-│   ├── resposta_rest.json
-│   ├── soap_estabelecimento_enviado.xml / soap_estabelecimento_recebido.xml
-│   └── soap_leitos_enviado.xml / soap_leitos_recebido.xml
-├── resultados/           # saída do benchmark
-│   ├── desempenho.md, desempenho.csv, desempenho_chamadas.csv   # REST com requests.Session
-│   └── antes_session/    # mesma medição com o cliente REST antigo (requests.get sem sessão)
-├── tests/
-│   ├── test_clientes.py  # clientes REST e SOAP (servidor real + falhas simuladas)
-│   ├── test_app.py       # interface, LGPD, paginação, cache
-│   └── conftest.py
-└── cache/                # criado em tempo de execução; fora do Git (.gitignore)
+├── .gitignore                         # ignora venv/, cache/, __pycache__/, .pytest_cache/, .env
+├── README.md                          # este relatório técnico
+├── requirements.txt                   # dependências com versão fixada (requests, zeep, streamlit, pytest)
+├── rest_client.py                     # cliente REST: listar_estabelecimentos, buscar_estabelecimento,
+│                                      #   listar_tipos_unidade (requests.Session)
+├── soap_client.py                     # cliente SOAP: consultar_estabelecimento, consultar_leitos (zeep +
+│                                      #   WS-Security, novas tentativas, cache, mascaramento LGPD)
+├── app.py                             # sistema integrado: interface Streamlit
+├── benchmark.py                       # mede tempo/tamanho REST x SOAP e analisa o conteúdo das respostas
+├── exemplos/                          # mensagens REAIS capturadas (dados pessoais mascarados)
+│   ├── .gitkeep                       # mantém a pasta no Git
+│   ├── resposta_rest.json             # JSON recebido: GET /cnes/estabelecimentos/4884124
+│   ├── soap_estabelecimento_enviado.xml   # envelope enviado a consultarEstabelecimentoSaude
+│   ├── soap_estabelecimento_recebido.xml  # resposta de consultarEstabelecimentoSaude
+│   ├── soap_leitos_enviado.xml        # envelope enviado a consultarLeitosCNES
+│   └── soap_leitos_recebido.xml       # resposta de consultarLeitosCNES
+├── resultados/                        # saída do benchmark.py (cliente REST com requests.Session)
+│   ├── desempenho.md                  # tabelas em Markdown
+│   ├── desempenho.csv                 # resumo por serviço (para gráficos)
+│   ├── desempenho_chamadas.csv        # cada chamada individual
+│   └── antes_session/                 # mesma medição com o cliente REST antigo (requests.get sem sessão)
+│       ├── desempenho.md
+│       ├── desempenho.csv
+│       └── desempenho_chamadas.csv
+└── tests/
+    ├── conftest.py                    # deixa os testes importarem os módulos da raiz do projeto
+    └── test_clientes.py               # 21 testes dos clientes REST e SOAP
 ```
+
+Pastas criadas só durante a execução e fora do Git: `venv/` (ambiente virtual) e `cache/` (WSDLs e últimas respostas SOAP, que podem conter dados pessoais).
 
 ---
 
@@ -144,7 +155,7 @@ pip install -r requirements.txt
 | Aplicação **REST** sozinha | `python3 rest_client.py` | lista 5 estabelecimentos de São Paulo, busca o detalhe do primeiro e testa um CNES inexistente (404) |
 | Aplicação **SOAP** sozinha | `python3 soap_client.py` | pega um hospital pelo REST, consulta dados e leitos pelo SOAP e mostra os tempos, os tamanhos e os XML enviado/recebido |
 | **Sistema integrado** | `streamlit run app.py` | abre a interface em http://localhost:8501 |
-| **Testes** | `python3 -m pytest -v` | executa os 30 testes (cerca de 10 s) |
+| **Testes** | `python3 -m pytest -v` | executa os 21 testes (poucos segundos) |
 | **Benchmark** | `python3 benchmark.py -n 10` | 10 chamadas de cada serviço; gera `resultados/desempenho.md` e `.csv` |
 
 Outras opções:
@@ -499,8 +510,10 @@ Antes da primeira chamada, o cliente SOAP precisa baixar e interpretar o WSDL e 
 
 **Ponto de equilíbrio:** é o número de chamadas *n* a partir do qual `WSDL + n × SOAP` fica menor que `n × REST`. Usando as medianas:
 
-- com o cliente REST **antigo**, sem sessão: 3.563 ÷ (318,1 − 133,1) ≈ **19 chamadas**;
-- com o cliente REST **com `Session`**: 3.394 ÷ (142,2 − 117,7) ≈ **139 chamadas**. Pela média, o REST já é mais rápido por chamada, e o custo do WSDL nunca se pagaria.
+- com o cliente REST **antigo**, sem sessão: 3.563,4 ÷ (318,1 − 133,1) = 19,3 → o SOAP fica à frente a partir da **20ª chamada**;
+- com o cliente REST **com `Session`**: 3.393,6 ÷ (142,2 − 117,7) = 138,5 → só a partir da **139ª chamada**. Pela média, o REST já é mais rápido por chamada, e o custo do WSDL nunca se pagaria.
+
+A aba *REST x SOAP* da interface faz esse mesmo cálculo a partir de [`resultados/desempenho.csv`](resultados/desempenho.csv) e [`resultados/antes_session/desempenho.csv`](resultados/antes_session/desempenho.csv).
 
 Na prática, a aplicação guarda o WSDL em `cache/wsdl.sqlite`. Com isso, a partir da segunda execução o carregamento cai para cerca de 60 ms.
 
@@ -582,7 +595,7 @@ O JSON também tem "marcação" (81% são chaves, aspas e pontuação), mas em e
    - O swagger diz que o `limit` deve ser ≤ 20, mas declara o padrão como 100. Pedindo mais de 20, a API devolve só 20, sem avisar.
    - O `offset` se comportou como "itens a pular" em 03/11/2026 e como **número da página** em 11/11/2026, que é o que o swagger diz. Uma paginação construída com a primeira regra caía em páginas vazias.
 
-   **Solução:** o limite é validado no cliente, a paginação usa o número da página e há um teste (`test_offset_da_api_e_numero_da_pagina`) que detecta se a regra mudar de novo.
+   **Solução:** o limite (1 a 20) é validado no cliente, e a paginação da interface usa o número da página. O comportamento observado e a data do teste estão registrados em comentário no parâmetro `offset` de `listar_estabelecimentos()`.
 
 8. **"Não encontrado" de três formas diferentes:**
    - REST: `404` com JSON.
@@ -604,8 +617,7 @@ O JSON também tem "marcação" (81% são chaves, aspas e pontuação), mas em e
 10. **Dados pessoais (LGPD).** A resposta do `consultarEstabelecimentoSaude` traz **nome, CPF e CNS de cada profissional**. **Solução:**
     - os exemplos em `exemplos/` foram mascarados antes da publicação (`***.***.***-**`, `***************`, `PROFISSIONAL 1`), mantendo a estrutura do XML;
     - a interface nunca exibe esses dados: a aba Profissionais mostra só a quantidade e as ocupações (CBO), e todo XML passa por `mascarar_dados_pessoais()` antes de aparecer na tela ou no download;
-    - a pasta `cache/`, que guarda as respostas originais, está no `.gitignore`;
-    - testes automatizados verificam que nenhum CPF ou CNS aparece na tela.
+    - a pasta `cache/`, que guarda as respostas originais, está no `.gitignore`.
 
 11. **Respostas muito grandes.** No caso do hospital de 10 MB: o timeout do SOAP é de 30 s, o lxml está configurado com `xml_huge_tree=True`, e a interface mostra só os primeiros 150 mil caracteres do XML (o download traz o arquivo completo).
 
@@ -618,16 +630,20 @@ O JSON também tem "marcação" (81% são chaves, aspas e pontuação), mas em e
 
 ```bash
 source venv/bin/activate
-python3 -m pytest -v        # 30 testes
+python3 -m pytest -v        # 21 testes
 ```
 
-| Arquivo | O que cobre |
-|---|---|
-| [`tests/test_clientes.py`](tests/test_clientes.py) (21) | **Servidor real:** REST lista (incluindo a conversão IBGE 7 → 6), detalhe e 404 amigável; SOAP estabelecimento, leitos e CNES inexistente (`NO_RESULT`, sem nova tentativa). **Sem rede:** `zfill(7)` (5 casos) e códigos inválidos (4). **Falhas simuladas com `unittest.mock`:** 504 como `Fault` com `detail` em bytes, 504 como `TransportError`, nova tentativa que resolve, erro definitivo que não é repetido, uso do cache com o servidor fora e `_codigo_da_falha` com bytes, HTML, lixo e `None` |
-| [`tests/test_app.py`](tests/test_app.py) (9) | `requests.Session` reaproveitada; `listar_tipos_unidade`; mascaramento LGPD (CPF, CNS, nome, e-mail, estrutura preservada, XML inválido não vaza); simulação de falha usando o cache; **interface com o `AppTest` do Streamlit**: fluxo completo sem nenhum CPF/CNS na tela, SOAP fora do ar com o aviso de cache, paginação; regra do `offset` direto na API |
+Os testes ficam em [`tests/test_clientes.py`](tests/test_clientes.py). O [`tests/conftest.py`](tests/conftest.py) só ajusta o caminho de importação, para que os testes encontrem `rest_client` e `soap_client` na raiz do projeto.
+
+| Grupo | Testes | O que cobre |
+|---|---|---|
+| REST, servidor real | 3 | lista (inclusive a conversão IBGE 7 → 6 dígitos), detalhe e CNES inexistente com 404 amigável |
+| SOAP, servidor real | 3 | `consultarEstabelecimentoSaude` (inclusive o cabeçalho WS-Security no XML enviado), `consultarLeitosCNES` e CNES inexistente (`NO_RESULT`, sem nova tentativa) |
+| Código CNES, sem rede | 9 | `zfill(7)` em 5 entradas válidas e rejeição de 4 inválidas |
+| Falhas simuladas (`unittest.mock`), sem rede | 6 | 504 como `Fault` com `detail` em bytes; 504 como `TransportError`; nova tentativa que resolve o 504; erro definitivo que não é repetido; uso do cache com o servidor fora; `_codigo_da_falha` com bytes, HTML, lixo e `None` |
 
 - Os testes que dependem do SOAP real são marcados como **pulados** (*skipped*), e não como reprovados, quando o servidor está instável. Servidor fora do ar não é defeito do código.
-- O tratamento de falhas é testado sem rede, com respostas simuladas.
+- O tratamento de falhas é testado sem rede, com respostas simuladas: o cliente `zeep` é substituído por um falso, e a espera entre tentativas é anulada.
 
 ---
 
@@ -636,7 +652,7 @@ python3 -m pytest -v        # 30 testes
 
 - **Os dois estilos resolvem o mesmo problema de formas bem diferentes.** O REST foi mais simples de consumir e de testar: uma URL, um `GET`, um JSON plano, e o navegador basta para experimentar. O SOAP exigiu entender o WSDL, os tipos complexos (`CodigoCNES { codigo }`), o envelope e o WS-Security. Em troca, o `zeep` gera o cliente automaticamente a partir do contrato, e as respostas são mais ricas e descritivas.
 - **O tamanho é a diferença mais clara entre os dois formatos.** Para os mesmos dados cadastrais, o XML veio 16× maior, com 97,6% de marcação. A diferença vem tanto da verbosidade (namespaces repetidos) quanto do volume de dados que a operação SOAP devolve.
-- **O tempo depende do serviço e do cliente, não só do protocolo.** Por chamada, os dois ficaram na mesma faixa (~100–150 ms). O que inverteu a comparação foi um detalhe de implementação: reaproveitar a conexão (`requests.Session`) deixou o REST 2,3× mais rápido. O SOAP tem ainda o custo fixo do WSDL (~3,4 s), que exigiria de 19 a 139 chamadas para se pagar, conforme o cliente REST usado.
+- **O tempo depende do serviço e do cliente, não só do protocolo.** Por chamada, os dois ficaram na mesma faixa (~100–150 ms). O que inverteu a comparação foi um detalhe de implementação: reaproveitar a conexão (`requests.Session`) deixou o REST 2,3× mais rápido. O SOAP tem ainda o custo fixo do WSDL (~3,4 s), que exigiria de 20 a 139 chamadas para se pagar, conforme o cliente REST usado.
 - **Contrato não garante comportamento.** O WSDL é "forte", mas o servidor envia campos fora dele (`strict=False`). O swagger é descritivo, mas divergia da API. Nos dois casos, só os testes com o serviço real revelaram o comportamento verdadeiro.
 - **Consumir serviços públicos reais exige robustez.** Foi preciso lidar com instabilidade (504 em HTML), novas tentativas, cache, mensagens de erro claras e independência entre os serviços. Também foi preciso cuidado com dados pessoais (LGPD), mesmo em uma API "de consulta pública".
 
