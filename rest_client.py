@@ -30,6 +30,13 @@ CABECALHOS = {
     "User-Agent": "monitor-saude/1.0 (trabalho academico)",
 }
 
+# Sessão HTTP reaproveitada entre as chamadas.
+# Com requests.get() "solto", cada chamada abria uma conexão TCP + TLS nova
+# (~150-250 ms só de handshake). A Session mantém a conexão aberta
+# (keep-alive) e a reaproveita, como o zeep já fazia no SOAP.
+_sessao = requests.Session()
+_sessao.headers.update(CABECALHOS)
+
 # Exceção própria -----------------------------------------------------------------------------
 
 class ErroAPIREST(Exception):
@@ -80,9 +87,7 @@ def _requisitar(caminho: str, params: Optional[dict] = None) -> RespostaREST:
 
     inicio = time.perf_counter()
     try:
-        resposta = requests.get(
-            url, params=params, headers=CABECALHOS, timeout=TIMEOUT_PADRAO
-        )
+        resposta = _sessao.get(url, params=params, timeout=TIMEOUT_PADRAO)
     except requests.exceptions.Timeout:
         raise ErroAPIREST(
             f"O servidor da API REST não respondeu em {TIMEOUT_PADRAO} segundos. "
@@ -141,7 +146,9 @@ def listar_estabelecimentos(
     codigo_municipio=None,
     codigo_uf: Optional[int] = None,
     limit: int = 20,
-    offset: int = 0,
+    offset: int = 0,       # número da PÁGINA, começando em 0 (como diz o swagger).
+                           # Testado em 11/11: com limit=5, offset=1 traz os itens 6 a 10.
+                           # (Em 03/11 a API se comportou como "itens a pular".)
     codigo_tipo_unidade: Optional[int] = None,
     status: Optional[int] = None,
 ) -> RespostaREST:
@@ -186,6 +193,16 @@ def buscar_estabelecimento(codigo_cnes) -> RespostaREST:
         raise ErroAPIREST(
             f"Estabelecimento com código CNES {texto} não foi encontrado.", 404
         )
+    return resultado
+
+
+def listar_tipos_unidade() -> RespostaREST:
+    # Tipos de unidade (/cnes/tipounidades). Em dados vem a LISTA, ex.:
+    # [{"codigo_tipo_unidade": 5, "descricao_tipo_unidade": "HOSPITAL GERAL"}, ...]
+    resultado = _requisitar("/cnes/tipounidades")
+    if not isinstance(resultado.dados, dict) or "tipos_unidade" not in resultado.dados:
+        raise ErroAPIREST("Formato inesperado na resposta de tipos de unidade.")
+    resultado.dados = resultado.dados["tipos_unidade"]
     return resultado
 
 # Teste pelo terminal ------------------------------------------------------------

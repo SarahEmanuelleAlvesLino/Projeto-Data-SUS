@@ -1,6 +1,6 @@
 # Desempenho REST x SOAP
 
-- Data/hora: 11/11/2026 09:10
+- Data/hora: 11/11/2026 22:01
 - Estabelecimento: CNES 4884124
 - Chamadas por serviço: 10 (intercaladas, pausa de 0.5 s, após 1 chamada de aquecimento)
 - Tempo: da chamada da função até ter os dados em Python (rede + processamento). "Só rede" = envio, espera e download do HTTP (só medido no SOAP).
@@ -10,16 +10,16 @@
 
 | Serviço | OK/total | Média (ms) | Mediana | Mín | Máx | Desvio | Só rede (média) | Tamanho (bytes) | Nova tentativa | Falhas |
 |---|---|---|---|---|---|---|---|---|---|---|
-| REST detalhe | 10/10 | 324.7 | 318.1 | 283.9 | 435.9 | 41.8 | - | 1.661 | 0 | 0 |
-| SOAP estabelecimento | 10/10 | 134.8 | 133.1 | 118.8 | 154.5 | 11.4 | 130.2 | 26.942 | 0 | 0 |
-| SOAP leitos | 10/10 | 109.9 | 88.3 | 71.2 | 222.6 | 52.3 | 108.6 | 2.001 | 0 | 0 |
+| REST detalhe | 10/10 | 142.7 | 142.2 | 137.4 | 148.5 | 4.2 | - | 1.661 | 0 | 0 |
+| SOAP estabelecimento | 10/10 | 161.4 | 117.7 | 102.5 | 563.2 | 141.3 | 157.1 | 26.942 | 0 | 0 |
+| SOAP leitos | 10/10 | 103.8 | 77.5 | 71.3 | 224.5 | 54.2 | 102.3 | 2.001 | 0 | 0 |
 
 ## Carregamento dos WSDLs (custo fixo do SOAP, uma vez, sem cache)
 
 | WSDL | Carregamento (ms) |
 |---|---|
-| CnesService (estabelecimento) | 3.563 |
-| LeitoService (leitos) | 516 |
+| CnesService (estabelecimento) | 3.394 |
+| LeitoService (leitos) | 511 |
 
 ## Conteúdo das respostas
 

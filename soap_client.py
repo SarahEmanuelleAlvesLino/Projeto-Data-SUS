@@ -11,6 +11,7 @@
 
 
 import json
+import os
 import threading
 import time
 from collections import deque
@@ -56,6 +57,10 @@ HTTP_TRANSITORIOS = {502: "Bad Gateway", 503: "Service Unavailable", 504: "Gatew
 #                          falhar depois de todas as tentativas
 PASTA_CACHE = Path(__file__).resolve().parent / "cache"
 VALIDADE_CACHE_WSDL = 7 * 24 * 3600    # 7 dias, em segundos
+
+# Simulação de falha (para testes e para a demonstração do cache):
+#   MONITOR_SIMULAR_SOAP_FORA=1 python3 ...   ou   soap_client.simular_falha = True
+simular_falha = os.environ.get("MONITOR_SIMULAR_SOAP_FORA", "").lower() in ("1", "true", "sim")
 
 
 
@@ -295,6 +300,11 @@ def _mensagem_instabilidade(status: Optional[int]) -> str:
 def _chamar_uma_vez(nome_servico: str, nome_operacao: str, codigo: str,
                     msg_nao_encontrado: str) -> RespostaSOAP:
     # Uma única tentativa. Erros viram ErroAPISOAP (transitorio=True ou False).
+    if simular_falha:
+        # Modo demonstração: finge que o barramento devolveu 504, para mostrar
+        # as novas tentativas e o uso do cache sem depender do servidor cair.
+        raise ErroAPISOAP(_mensagem_instabilidade(504) + " [falha SIMULADA]", 504,
+                          transitorio=True)
     cliente, transporte, historico = _obter_cliente(nome_servico)
     operacao = getattr(cliente.service, nome_operacao)
 
@@ -450,6 +460,43 @@ def consultar_leitos(codigo_cnes, usar_cache: bool = True) -> RespostaSOAP:
         "existe ou não tem leitos cadastrados.",
         usar_cache,
     )
+
+
+def mascarar_dados_pessoais(xml_texto: str) -> str:
+    """Mascara dados pessoais de profissionais (LGPD) no XML recebido.
+
+    Dentro de <profissional> e <Diretor>:
+      CPF -> ***.***.***-**   CNS -> ***************   nome -> PROFISSIONAL n
+      e-mail e endereço pessoais -> ***
+    A ocupação (CBO) é mantida. Tags, namespaces e quantidade de elementos
+    não mudam. Se o XML não puder ser lido, NADA é devolvido do conteúdo.
+    """
+    try:
+        raiz = etree.fromstring(xml_texto.encode("utf-8"))
+    except Exception:
+        return "<!-- XML ocultado: não foi possível mascarar os dados pessoais -->"
+
+    def local(el):
+        return etree.QName(el).localname
+
+    nomes = {}
+    for pessoa in raiz.iter():
+        if not isinstance(pessoa.tag, str) or local(pessoa) not in ("profissional", "Diretor"):
+            continue
+        for el in pessoa.iter():
+            if not isinstance(el.tag, str) or len(el) or not (el.text or "").strip():
+                continue
+            tag, pai = local(el), local(el.getparent())
+            ancestrais = {local(a) for a in el.iterancestors() if isinstance(a.tag, str)}
+            if tag == "numeroCPF":
+                el.text = "***.***.***-**"
+            elif tag == "numeroCNS":
+                el.text = "*" * 15
+            elif tag.lower() == "nome" and (pai.lower() == "nome" or local(pessoa) == "Diretor"):
+                el.text = nomes.setdefault(el.text.strip(), f"PROFISSIONAL {len(nomes) + 1}")
+            elif ancestrais & {"Email", "Endereco"}:
+                el.text = "***"
+    return etree.tostring(raiz, encoding="unicode")
 
 
 def resumir_estabelecimento(dados: dict) -> dict:
