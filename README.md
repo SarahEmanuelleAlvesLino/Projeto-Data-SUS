@@ -148,7 +148,29 @@ source venv/bin/activate
 
 # 3. Instalar as dependências
 pip install -r requirements.txt
+
+# 4. (Opcional) Testar cada cliente sozinho no terminal
+python3 rest_client.py        # aplicação REST
+python3 soap_client.py        # aplicação SOAP
+
+# 5. (Opcional) Rodar os testes automatizados
+python3 -m pytest -v
+
+# 6. Abrir a interface (sistema integrado REST + SOAP)
+streamlit run app.py
 ```
+
+Depois do passo 6, o terminal mostra o endereço `http://localhost:8501`. Se o navegador não abrir sozinho, abra esse endereço manualmente. Para encerrar a interface, pressione `Ctrl+C` no terminal.
+
+Nas próximas vezes não é preciso instalar nada de novo, basta entrar na pasta, ativar o ambiente virtual e abrir a interface:
+
+```bash
+cd Projeto-Data-SUS
+source venv/bin/activate
+streamlit run app.py
+```
+
+Resumo dos comandos:
 
 | O que rodar | Comando | O que acontece |
 |---|---|---|
